@@ -1,0 +1,92 @@
+##############################################
+# ULCL.MAC                                   #
+# Produces Upper and Lower Control Limits    #
+#    for non-normal data (Percentile Charts  #
+# Author: Bruce A. Gilbert                   #
+# Date  : July, 1999                         #
+# Version: Rel 12 for Windows                #
+##############################################
+      
+macro
+
+prcntl  Y 
+
+MCONSTANT N T1 T2 XMEDIAN XLOW XHIGH LCL UCL CL
+MCONSTANT CNPK CNPL CNPU T995 T995A T005 T005A 
+MCONSTANT XHIGH2 XLOW2 QHIGH QLOW TDIFFA TDIFFB
+MCOLUMN X Y XTRIM XSORT XRANK XTILE
+
+Sort Y  X;
+   By Y.
+
+LET XMEDIAN = MEDIAN(X)
+LET N = COUNT(X)
+LET T995 = .995*(N+1)
+LET T005 = .005*(N+1)
+LET T995A = ROUND(T995)
+LET T005A = ROUND(T005)
+LET TDIFFA = T995A - T995
+LET TDIFFB = T005A - T005
+
+IF T995 > N
+	LET XHIGH = X(N)
+	LET XHIGH2 = X(N-1)
+	LET QHIGH = XHIGH - ABSO(TDIFFA)*(XHIGH - XHIGH2)
+
+	LET XLOW = X(1)
+	LET XLOW2 = X(2)
+	LET QLOW = XLOW + ABSO(TDIFFB)*(XLOW2 - XLOW)
+
+ELSEIF T995 = N
+	LET QHIGH = X(N)
+	LET QLOW = X(1)
+ELSE
+
+	IF TDIFFA > 0 		
+
+# WE ROUNDED UP SO NEED THAT VALUE PLUS THE ONE BELOW
+		LET XHIGH = X(T995A)
+		LET XHIGH2 = X(T995A - 1)
+		LET QHIGH = XHIGH - ABSO(TDIFFA)*(XHIGH - XHIGH2)
+
+  	ELSEIF TDIFFA < 0
+
+		LET XHIGH2 = X(T995A)
+		LET XHIGH = X(T995A + 1)
+		LET QHIGH = XHIGH2 + ABSO(TDIFFA)*(XHIGH - XHIGH2)
+
+	ELSE
+	
+		LET QHIGH = X(T995A)
+
+	ENDIF
+	
+	IF TDIFFB > 0
+		
+		LET XLOW2 = X(T005A)
+		LET XLOW = X(T005A - 1)
+		LET QLOW = XLOW2 - ABSO(TDIFFB)*(XLOW2 - XLOW)
+		
+ 	ELSEIF TDIFFB < 0
+
+		LET XLOW = X(T005A)
+		LET XLOW2 = X(T005A +1)
+		LET QLOW = XLOW + ABSO(TDIFFB)*(XLOW2 - XLOW)
+
+	ELSE
+		LET QLOW = X(T005A)
+
+	ENDIF
+ENDIF
+LET LCL = QLOW
+PRINT LCL
+NOTE LOWER CONTROL LIMIT 
+LET UCL = QHIGH
+PRINT UCL
+NOTE UPPER CONTROL LIMIT 
+LET CL = XMEDIAN
+PRINT CL
+NOTE CENTER LINE  
+
+endmacro
+  

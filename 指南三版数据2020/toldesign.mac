@@ -1,0 +1,184 @@
+########################################################################
+# TOLDESIGN.MAC                                                        #
+#                                                                      #
+#Calculate for Sigma level for Tolrence design in Normal Distribution  #
+#                                                                      #
+# Author: Ling XU and Fengshi MA                                                   #
+# Date  : March 2012                                                   #
+#                                                                      #
+# Version: Rel 14 for Windows                                          #
+#                                                                      #
+########################################################################
+
+      
+gmacro 
+toldesign 
+ 
+#Note 
+#Note This macro is designed to be used with the worksheet toldesign.
+
+# 系数K含义汇总
+# K81 是偏离系数
+# K82 是标准差设定系数 L(X)
+# K84 是现有均值
+# K85 是设定系数平方和 
+# K84 and K88 is the mean and std dev of nomial
+# K86 and K87 is the USL and LSL
+# K94表示不可能改进方差的项数总和，K94=0表示各项都给出了改进建议
+
+# K95 代表方差调整权的平方和
+# K95 > 0 表示权重不全为0 需要按此权计算新标准差
+# K95 = 0 表示权重全为0 此时将给出权重建议
+
+# K96是方差要减少的总量 其平方根存于C12(5)
+# 若 K96 <=0 表示现状西格玛水平已达到4.5，无进一步改进必要
+# K96 > 0 表示仍可能降标准差
+# K96 > 0 且 K95 > 0 表示“仍可能降标准差”且“权重不全为0”应该计算新标准差
+# K97 是（mu-T)**2
+# 若 K97 < 0.0000001 表示均值已调整完毕，应进一步改进方差；否则 均值仍有调整空间，改进建议见C15
+  
+
+Let K80 = Count(C1) 
+# K80 is the number of iterms
+Let C9(1)=0.5 * (C5(1)+C5(2))
+
+Let K84 = 0  
+Let K85 = 0
+Let K97 = 0
+
+Do K91 = 1:K80
+Let K84 = K84 + C2(K91) * C6(K91)
+Let K85 = K85 + ABS(C2(K91))*  C7(K91) * C7(K91)
+ENDDO
+# K84 是现有均值
+# K85 是设定系数平方和 
+Let C11(1) =  K84 
+# K84 是现有均值
+
+Let C11(3) =  C9(1) 
+# C11(3) 是现有均值的偏差
+
+Let C11(5) =  C9(1) - K84 
+# C11(3) 是现有均值需要调整的量
+Let K97 = (C9(1) - K84)*( C9(1) - K84) 
+# K97 是（mu-T)**2
+Let K88 = SQRT( K85 ) 
+
+Let K81 = ABS(C11(5)) *2 /(C5(2)-C5(1))
+# K81 是偏离系数
+
+
+IF K81 < 0 OR K81 >=1 
+    NOTE 过程能力太差，均值超出公差限停止计算
+     EXIT
+ENDIF
+Let K82 = 4.5 / (1-K81)+ EXP(172.6862 * K81**3 - 179.3048 *K81**2 - 30.8544 * K81 - 1.9297) 
+  
+# K82 是标准差系数L 
+
+Let C12(1) = K88 
+Let C12(3) = (C5(2)-C5(1)) / 2/K82 
+Let K96 = C12(1)* C12(1) - C12(3)* C12(3) 
+# K96是方差要减少的总量
+Let C14(5)= K81 
+Let C14(6)= K82 
+
+IF K96 <=0
+	NOTE 现在过程Z值已达到4.5，无进一步改进必要
+       
+	let C12(5)=0
+ELSE 
+Let C12(5) = SQRT(K96) 
+ENDIF
+
+Let K86 = C5(2)
+Let K87 = C5(1)
+# K84 and K88 is the mean and std dev of nomial
+# K86 and K87 is the USL and LSL
+
+CDF K86 K89;
+normal K84 K88. 
+Let C14(2) = 1-K89
+
+CDF  K87  k89;
+normal K84 K88. 
+Let C14(1) =  K89
+
+Let C14(3) = C14(1)+C14(2)
+Let K90 = 1 - C14(3)
+
+INVCDF K90 K81;
+NORMAL.
+
+Let C14(4) = K81
+NOTE 根据设定的均值及标准差完成绩效评估
+
+
+Let K92  = C11(5)
+Let K95 = 0
+
+Do K91 = 1:K80
+Let C15(K91) =  K92 / C2(K91) + C6(K91)
+
+Let K95 = K95 + C8(K91)*C8(K91)
+ENDDO
+IF K95 = 0 
+   Do K91 = 1:K80
+   Let C17(K91) = C7(K91)
+   ENDDO
+ENDIF
+  
+
+   If K97 < 0.000000001 
+   Note 均值调整完毕，应进一步改进方差
+   ELSE 
+   NOTE 均值仍有调整空间，改进建议见C15
+   ENDIF
+
+
+# Let K98 = 0.308641975 
+#原来六西格玛设计中提出改进只是有度的，这里是“改进系数”，本文恢复为1
+Let K98 = 1 
+
+IF K96 > 0.000000001 and K95 > 0
+# K96 > 0 表示仍可能降标准差， K95 > 0 表示权重不全为0 故需要计算新标准差
+
+ LET K94 = 0
+   Do K91 = 1:K80
+
+       Let K99 = C7(K91)* C7(K91) - K96*C8(K91)*K98/ABS(C2(K91))
+# K99 表示某项现有方差与应该达到的方差之差,即需要改进的方差量
+
+      IF K99 < 0
+        
+         Let C17(K91) = -1 
+	 NOTE 该项无法改进，设定降低方差权重不能实现（该项标准差调整建议将显示为“-1”或 “*”）
+        LET K94 = K94 + 1	
+      ELSE 
+        Let C17(K91) =  SQRT( K99 ) 
+      ENDIF
+  ENDDO
+ENDIF
+    
+
+IF K94 = 0 
+# K94表示不可能改进方差的项数总和，K94=0表示各项都能实现改进，C17给出标准差改进建议
+    NOTE 根据设定降低方差权重已给出标准差调整建议
+    
+    ELSE
+
+    NOTE 设定降低方差权重不能实现，无法给出可用的标准差调整建议
+    
+ENDIF
+
+
+ IF K95 = 0 AND K96 > 0.0000000001  
+# K95 = 0 表示权重全为0 ，K96 > 0 表示仍有改进空间，在此二条件下将给出权重建议
+   Do K91 = 1:K80
+   Let C16(K91) =  ABS(C2(K91))*  C7(K91) * C7(K91) / K85
+   ENDDO
+   NOTE 标准差仍有改进空间，请考虑C16给出的改进标准差权初始建议，
+   NOTE 由于未输入改进权，C17仍为原来数值，按新权计算以后才能给出标准差改进建议C17 
+ ENDIF  
+
+endmacro

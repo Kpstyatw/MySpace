@@ -1,0 +1,152 @@
+#########################################################
+# POA.MAC                                               #
+#                                                       #
+# Calculates the path of ascent for RSM                 #
+#                                                       #
+# Author: Bruce Gilbert                                 #
+# Date  : Nov. 1999                                     #
+# update: Oct. 2011                                     # 
+#         F.S.MA                                        #
+# Version: Rel 12 for Windows                           #
+#                                                       #
+#########################################################
+#
+# Changes made April 2003 to transpose the step matrix
+# to make the macro more user friendly.  Susan Cluck
+#
+# Changes made October 2003 to allow use with Minitab14.
+# Nancy Romero
+#
+      
+gmacro
+doepoa
+
+Let K90 = Count(C1)
+#Let K81 = Max (C2)   #will use to determine the step size
+
+#Calculation of Unit Vector length
+
+Let K92 = 0
+
+Do K91 = 1:K90
+	Let K93 = C2(K91)
+	Let K92 = K92 + (K93)**2
+ENDDO
+
+Let K82 =  Max(abs(C2))
+Let K94 = abs(sqrt(K92))  #This is the unit vector length.
+Let K80 = K82/K94
+Let K81 = 1/K80  #This is the multiplier to give step size of 1 to max coeff.
+
+Do K91 = 1:K90
+Let K83 = (C3(K91)+C4(K91))/2
+Let K84 = (C4(K91)-C3(K91))/2	
+Let C7(K91) = K83
+Let C8(K91) = C2(K91)/K94*K81*K84
+
+ENDDO
+
+
+DO K95 = 1:10
+
+	Do K91 = 1:K90
+
+	  If K95 = 1
+	   Let C9(K91) = C8(K91)*K95+C7(K91)
+           IF  C9(K91)< C5(K91) 
+           Let C9(K91)= C5(K91)  
+           ENDIF
+	   IF  C9(K91)> C6(K91) 
+           Let C9(K91)= C6(K91)  
+           ENDIF
+
+	   elseif K95 = 2
+ 	   Let C10(K91) = C8(K91)*K95+C7(K91)
+           IF  C10(K91)< C5(K91) 
+           Let C10(K91)= C5(K91)  
+           ENDIF
+	   IF  C10(K91)> C6(K91) 
+           Let C10(K91)= C6(K91)  
+           ENDIF 
+
+	   elseif K95 = 3
+ 	   Let C11(K91) =C8(K91)*K95+C7(K91)
+           IF  C11(K91)< C5(K91) 
+           Let C11(K91)= C5(K91)  
+           ENDIF
+	   IF  C11(K91)> C6(K91) 
+           Let C11(K91)= C6(K91)  
+           ENDIF 
+ 
+	  elseif K95 = 4   
+ 	   Let C12(K91) = C8(K91)*K95+C7(K91)
+           IF  C12(K91)< C5(K91) 
+           Let C12(K91)= C5(K91)  
+           ENDIF
+	   IF  C12(K91)> C6(K91) 
+           Let C12(K91)= C6(K91)  
+           ENDIF             
+
+	  elseif K95 = 5   
+ 	   Let C13(K91) =C8(K91)*K95+C7(K91)
+           IF  C13(K91)< C5(K91) 
+           Let C13(K91)= C5(K91)  
+           ENDIF
+	   IF  C13(K91)> C6(K91) 
+           Let C13(K91)= C6(K91)  
+           ENDIF
+ 
+	  elseif K95 = 6   
+ 	   Let C14(K91) = C8(K91)*K95+C7(K91)
+           IF  C14(K91)< C5(K91) 
+           Let C14(K91)= C5(K91)  
+           ENDIF
+	   IF  C14(K91)> C6(K91) 
+           Let C14(K91)= C6(K91)  
+           ENDIF 
+
+	  elseif K95 = 7   
+ 	   Let C15(K91) = C8(K91)*K95+C7(K91)
+           IF  C15(K91)< C5(K91) 
+           Let C15(K91)= C5(K91)  
+           ENDIF
+	   IF  C15(K91)> C6(K91) 
+           Let C15(K91)= C6(K91)  
+           ENDIF 
+
+	   elseif K95 = 8   
+ 	   Let C16(K91) = C8(K91)*K95+C7(K91)
+           IF  C16(K91)< C5(K91) 
+           Let C16(K91)= C5(K91)  
+           ENDIF
+	   IF  C16(K91)> C6(K91) 
+           Let C16(K91)= C6(K91)  
+           ENDIF 
+ 
+	  elseif K95 = 9
+ 	   Let C17(K91) = C8(K91)*K95+C7(K91)
+           IF  C17(K91)< C5(K91) 
+           Let C17(K91)= C5(K91)  
+           ENDIF
+	   IF  C17(K91)> C6(K91) 
+           Let C17(K91)= C6(K91)  
+           ENDIF  
+
+	  elseif K95 = 10
+ 	   Let C18(K91) = C8(K91)*K95+C7(K91)
+           IF  C18(K91)< C5(K91) 
+           Let C18(K91)= C5(K91)  
+           ENDIF
+	   IF  C18(K91)> C6(K91) 
+           Let C18(K91)= C6(K91)  
+           ENDIF 
+
+	  endif
+
+	ENDDO 
+	
+
+ENDDO
+		
+
+endmacro

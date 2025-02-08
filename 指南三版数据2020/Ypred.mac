@@ -1,0 +1,113 @@
+# ypred.mac / Skip Weed, March, 2001
+#
+# Macro to compute lower and upper 95% confidence limits for 
+# the mean of m confirmation runs.
+#
+#
+# Changes made October 2003 to allow use with Minitab14.  Nancy Romero
+#
+#
+
+MACRO
+
+Ypred y xmat p m predx 
+
+# y = response
+# m = Number of Confirmation Runs
+# p = No. of columns of the design matrix (No. of terms in 
+#     the chosen model, including the constant).
+# xmat is the design matrix for the chosen model
+# predx is a column of p-1 settings of the predictors where 
+#     the confirmation runs were made.
+
+MCOLUMN y XM.1-XM.30 PREDX
+MCOLUMN pfit pfitsd meanci1 meanci2 mse crlim1 crlim2
+MCOLUMN pc resid xv.1-xv.30 msec msec2 msetc lsetc llimc llimc2 
+MCOLUMN usetc ulimc ulimc2 tsetc spsetc mc mrunc mc2
+MCONSTANT P m mm pp n k1 k2 k3 k4 k5 k6 k7 k8
+MCONSTANT mset lset uset llim ulim tset spset mrun
+MMATRIX xmat xpred xpredt
+
+# NAME c60 = 'PFIT' c61 = 'PFITSD' c62 = 'MEANCI1'
+# NAME c63 = 'MEANCI2' c64 = 'MSE'  c65 = 'CRLIM1'
+# NAME c66 = 'CRLIM2'
+
+LET mm = P
+COPY xmat xm.1-xm.mm
+LET pp = p-1
+
+COPY predx xpred
+transpose xpred xpredt
+COPY xpredt xv.1-xv.pp
+
+Regress y pp xm.2-xm.mm;
+  Constant;
+  MSE k5;
+  RESIDUALS resid;
+  Predict xv.1-xv.pp;
+    PFITS pfit;
+    PSDFITS pfitsd;
+    CLIMITS meanci1 meanci2;
+  Brief 0.
+LET n = N(resid)
+LET k3 = n - p
+InvCDF 0.025 k6;
+  T k3.
+Let k6 = ABSO(k6)
+Let k1=  pfit(1)
+Let k2 = pfitsd(1)
+Let k7 = k1 - k6*sqrt(k2**2 + k5/m)
+Let k8 = k1 + k6*sqrt(k2**2 + k5/m)
+
+Copy k5 mse
+Copy k7 llim
+Copy k8 ulim
+
+KKSET mset "模型的均方误(MSE) =  " 
+KKSET lset  "95%置信区间下界 =  "
+KKSET uset  "95%置信区间上界 =  "
+KKSET tset  "m次验证试验均值的95%置信区间"
+KKSET spset " "
+KKSET mrun "m = "
+
+copy spset spsetc
+
+copy tset tsetc
+WRITE tsetc;
+  FILE "TERMINAL".
+
+copy m mc
+copy mrun mrunc
+TEXT mc mc;
+	significant 2.
+CONCATENATE mrunc mc mc2 
+WRITE mc2;
+  FILE "TERMINAL".
+
+copy mset msetc
+copy mse msec
+TEXT msec msec;
+	significant 6.
+CONCATENATE msetc msec msec2 
+WRITE msec2;
+  FILE "TERMINAL".
+copy lset lsetc
+copy llim llimc
+TEXT llimc llimc;
+	significant 6.
+CONCATENATE lsetc llimc llimc2 
+WRITE llimc2;
+  FILE "TERMINAL".
+
+copy uset usetc
+copy ulim ulimc
+TEXT ulimc ulimc;
+	significant 6.
+CONCATENATE usetc ulimc ulimc2 
+WRITE ulimc2;
+  FILE "TERMINAL".
+WRITE spsetc;
+  FILE "TERMINAL".
+
+
+ENDMACRO

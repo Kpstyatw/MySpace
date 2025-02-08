@@ -1,0 +1,212 @@
+# BoxCoxReg.mac / Skip Weed, March, 2001
+#
+# Derived from:
+# BoxCoxlm.mac / Jouni Kuha, February 12, 2000
+# A Minitab macro for estimating the transformation parameter lambda of
+# a Box-Cox transformation of the response variable in a linear	regression 
+# model.
+#
+# See, for example, Draper and Smith: Applied regression analysis, 3rd ed.,
+# Wiley, 1998 (Section 13.2) for further information on the transformation.
+# 
+# This macro can be freely used and distributed for non-commercial purposes.
+# Any changes to it should be documented, making clear where the new version
+# differs from this original version.  
+# 
+# Additions included in the March 2001 version are:
+#
+#	1. The ability to get an estimate of the optimum Box-Cox transformation 
+# 	parameter for any saved design matrix (XMAT) from a DOE or multiple 
+#	regression analysis in Minitab. This eliminates the need to manually 
+#	construct the design matrix columns for a complete regression model.
+#	
+#	2. The estimate is obtained by minimizing the residual sum of squares rather
+#	than the equivalent but less intuitive maximum likelihood method.
+#
+#	3. A plot of the residual sum of squares over a range of selected lambdas is 
+#	provided. This is the plot usually discussed in textbooks and DOE courses.
+#
+#	4. The 95% confidence line for lambda is computed and displayed on the residual 
+#	sum of squares plot.
+#
+#
+#  changes made October 2003 to allow use in Minitab14.  Nancy Romero
+#  changes made October 2006 to allow use in Minitab15 and Chinese.  Fengshi MA
+#  changes made February 2015 to allow use in Minitab17. Yanling Zuo and Fengshi MA
+#
+#
+MACRO
+
+BoxCoxDoe Y XMAT F XM.1-XM.40;
+
+# Y =response variable
+# XMAT is Design Matrix
+# F = No. of terms in model (including constant term) = No. columns in Design Matrix
+# 40 Blank columns for design matrix
+ 
+	LMIN lamin;		# smallest lambda considered
+	LMAX lamax;		# largest lambda considered
+	LSTEP lastep.	# steplength between lambdas considered
+
+# Declarations and initial calculations	
+
+MCOLUMN  Y  
+MCOLUMN XM.1-XM.40
+MCOLUMN V resid beta lambda loglik l2 tmp lhatc tc minssc cilinesc
+MCOLUMN ytc xtc mlec mlec2 ssresid ssec lhatssc ssec2
+MCOLUMN cic parenthc spacec ciupc cilowc cic2 nuc 
+MCONSTANT gmean mse n p	maxll lhat ciline ciwarn ymin f mm pp
+MCONSTANT lamin lamax lastep li i nl minss lhatss sse k6 nu	
+MCONSTANT under over indlow1 indlow2 indup1 indup2 cilow ciup
+MCONSTANT yt resp expl mle xt.1-xt.40 space ci parenth
+MCONSTANT ciliness
+MMATRIX xmat
+
+DEFAULT lamin=-2 lamax=2 lastep=.1
+
+LET MM = f
+Copy xmat XM.1-XM.MM
+# xmat is copied into first MM columns of the 40 allocated in the global worksheet
+
+SET lambda
+  1( lamin : lamax / lastep )1
+END
+LET nl=COUNT(lambda)
+
+# Fitting a linear model for the transformed response for
+# each lambda considered
+
+LET ymin=MIN(Y)
+IF ymin<=0
+	NOTE Error: some values of the response variable are 0 or negative
+	EXIT
+ENDIF
+
+DO i=1:nl
+LET li=lambda(i)
+LET gmean=EXP(MEAN(LOGE(Y)))
+IF li=0
+	LET V=gmean*LOGE(Y)
+ELSE
+	LET V=(Y**li - 1)/(li*(gmean**(li-1)))
+ENDIF
+
+
+
+LET PP = MM-1
+# PP is the number of effects in the model (excluding the constant term)
+ 
+
+REGRESS;
+  RESP v;
+  CONT XM.2-XM.MM;
+  TERM XM.2-XM.MM;
+  Constant;
+  MSE mse;
+  RESIDUALS resid;
+  COEFFICIENTS beta;
+  NODEFAULT.
+
+
+
+#REGRESS V PP XM.2-XM.MM;
+#  Constant;
+#  MSE mse;
+#  RESIDUALS resid;
+#  COEFFICIENTS beta;
+#  Brief 0.
+
+LET n=N(resid)
+LET p=N(beta)
+LET ssresid(i) = mse*(n-p)
+
+ENDDO
+
+# Finding Minimum Residual Sum of Squares
+
+LET minss=MIN(ssresid)
+DO i=1:nl
+	IF ssresid(i)=minss
+		LET lhatss=lambda(i)
+	ENDIF
+ENDDO
+
+# Approximate 95 % confidence interval for lambda based upon residual sum of squares
+
+# inverse t-dist with n-p degrees of freedom.
+LET nu = n-p
+InvCDF 0.025 k6;			
+  T nu.
+LET ciliness = minss*(1+((k6**2)/nu))
+# ciliness is the  confidence line for for testing the hypothesis that lambda = 1.
+
+COPY nu nuc
+COPY k6 tc
+COPY minss minssc
+COPY ciliness cilinesc
+WRITE nuc;
+  FILE "TERMINAL". 
+WRITE tc;
+  FILE "TERMINAL".
+WRITE minssc;
+  FILE "TERMINAL".
+WRITE cilinesc;
+  FILE "TERMINAL".
+
+# Plotting residual sum of squares vs. lambda
+
+PLOT ssresid*lambda;
+  Connect; 
+  Scale 2;
+    LOGS 10;
+  AXLabel 2 "残差平方和";
+    Reference 2 ciliness;
+      Type 2;
+      Color 2;
+
+##  logscale 2;
+##  Axis 2;
+Title "Box-Cox 变换";
+Title "附有变换参数lambda的近似95%置信区间";
+	Tsize 0.75.
+  
+# Text output	
+
+KKSET resp "Response variable: " expl "Explanatory variables: " space ", "
+KKSET sse "Minimum Residual Sum of Squares estimate of transformation parameter is "
+
+KKNAME yt Y
+KKCAT resp yt resp 
+COPY resp ytc
+
+DO i=2:MM
+	KKNAME xt.i XM.i 
+	KKCAT expl xt.i expl
+	IF i<MM
+		KKCAT expl space expl 
+	ENDIF
+ENDDO
+COPY expl xtc
+
+COPY sse ssec
+COPY lhatss lhatssc
+TEXT lhatssc lhatssc;
+	significant 4.
+CONCATENATE ssec lhatssc ssec2
+
+  
+  
+  
+NOTE
+NOTE BOX-COX Transformations
+WRITE ytc;
+FILE "TERMINAL".
+WRITE xtc;
+  FILE "TERMINAL".
+WRITE ssec2;
+  FILE "TERMINAL".
+
+
+ENDMACRO
+
+
